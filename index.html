@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Golf Score Tracker</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --surface:#ffffff; --text:#1f2a24; --text-muted:#6b7570;
+    --border:#e1ddd3; --accent:#2f6b4f; --accent-soft:#e7f1ec; --danger:#b5484f;
+    box-sizing:border-box;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14181a; --surface:#1d2426; --text:#eceeec; --text-muted:#9aa39e;
+      --border:#2c3436; --accent:#5fae86; --accent-soft:#1f3429; --danger:#e07b80;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; min-height:100vh;}
+  header{position:sticky; top:0; background:var(--bg); padding:18px 16px 10px; border-bottom:1px solid var(--border); z-index:5;}
+  h1{font-size:1.25rem; margin:0 0 4px;}
+  .sub{color:var(--text-muted); font-size:0.85rem; margin:0;}
+  main{padding:14px 12px 40px; max-width:720px; margin:0 auto;}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:16px;}
+  button{font:inherit; cursor:pointer; border:none; border-radius:10px; padding:10px 16px; background:var(--accent); color:white; font-weight:600;}
+  button.secondary{background:var(--accent-soft); color:var(--accent);}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  label{font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:4px;}
+  input, select, textarea{font:inherit; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); width:100%;}
+  textarea{resize:vertical; min-height:44px;}
+  input:disabled, select:disabled{opacity:0.45; cursor:not-allowed;}
+  .legend{font-size:0.75rem; color:var(--text-muted); margin-top:8px;}
+  .hole-chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+  .hole-chip{display:flex; flex-direction:column; align-items:center; justify-content:center; width:44px; height:44px; border-radius:10px; background:var(--surface); border:1px solid var(--border); color:var(--text-muted); font-size:0.65rem; padding:2px; cursor:pointer;}
+  .hole-chip span{font-weight:700;}
+  .hole-chip small{font-size:0.78rem; color:var(--text); margin-top:1px;}
+  .hole-chip.filled{border-color:var(--accent);}
+  .hole-chip.active{background:var(--accent); border-color:var(--accent); color:white;}
+  .hole-chip.active small{color:white;}
+  .counter-panel{margin-top:14px; text-align:center; background:var(--accent-soft); border-radius:14px; padding:16px;}
+  .counter-hole-label{font-weight:700; color:var(--accent); margin-bottom:6px; font-size:0.95rem;}
+  .counter-display{font-size:3rem; font-weight:800; color:var(--text); margin-bottom:14px; line-height:1;}
+  .counter-buttons{display:flex; gap:10px; justify-content:center; align-items:center; margin-bottom:12px;}
+  .counter-btn.minus{width:48px; height:48px; border-radius:50%; background:var(--surface); color:var(--danger); font-size:1.4rem; border:1px solid var(--border); padding:0; flex-shrink:0;}
+  .counter-btn.plus{flex:1; max-width:220px; height:56px; border-radius:16px; background:var(--accent); color:white; font-size:1.05rem; font-weight:700;}
+  #holedBtn{width:100%; background:var(--surface); color:var(--accent); border:1.5px solid var(--accent); font-weight:700;}
+  .table-wrap{overflow-x:auto; border:1px solid var(--border); border-radius:12px;}
+  table{border-collapse:collapse; width:100%; font-size:0.85rem; min-width:480px;}
+  th, td{padding:8px 10px; text-align:center; border-bottom:1px solid var(--border); white-space:nowrap;}
+  th{background:var(--accent-soft); color:var(--accent); position:sticky; top:0;}
+  td.hole-label, th.hole-label{position:sticky; left:0; background:var(--surface); font-weight:600; text-align:left;}
+  th.hole-label{background:var(--accent-soft);}
+  tr:last-child td{border-bottom:none;}
+  .total-row td{font-weight:700; background:var(--accent-soft);}
+  .empty{color:var(--text-muted); text-align:center; padding:24px 10px; font-size:0.9rem;}
+  .round-head-btn{background:none; border:none; color:var(--danger); font-size:0.75rem; padding:0; cursor:pointer;}
+  td.actions-cell{text-align:center;}
+  td.actions-cell > button{display:block; width:100%; margin:0 auto;}
+  td.actions-cell > button + button{margin-top:4px;}
+  tr.actions-row td{padding-top:10px; border-bottom:none;}
+  .info-row td{font-size:0.8rem; color:var(--text-muted); font-weight:500;}
+  .info-row td.hole-label{color:var(--accent); font-weight:700;}
+  td.remarks-cell{max-width:120px; white-space:normal; text-align:center; font-style:italic; word-break:break-word;}
+  td.wrap-cell{max-width:120px; white-space:normal; text-align:center; overflow-wrap:anywhere; word-break:break-word;}
+  .multiselect{position:relative;}
+  .multiselect-toggle{font:inherit; width:100%; text-align:left; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:400; display:flex; justify-content:space-between; align-items:center; gap:6px;}
+  .multiselect-toggle .chevron{color:var(--text-muted); font-size:0.7rem;}
+  .multiselect-panel{position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,0.15); max-height:220px; overflow-y:auto; z-index:20; padding:6px;}
+  .multiselect-option{display:flex; align-items:center; gap:8px; padding:7px 6px; border-radius:6px; cursor:pointer; font-size:0.9rem;}
+  .multiselect-option:hover{background:var(--accent-soft);}
+  .multiselect-option input{width:auto; margin:0;}
+  .multiselect-empty{padding:8px 6px; font-size:0.85rem; color:var(--text-muted);}
+  .info-btn{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:0.7rem; font-weight:700; cursor:pointer; border:none; padding:0; margin-left:6px; vertical-align:middle;}
+  .label-row{display:flex; align-items:center; margin-bottom:4px;}
+  .label-row label{margin-bottom:0;}
+  .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:flex-end; justify-content:center; z-index:50;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface); width:100%; max-width:560px; max-height:80vh; overflow-y:auto; border-radius:16px 16px 0 0; padding:16px;}
+  @media (min-width:600px){ .modal-overlay{align-items:center;} .modal-box{border-radius:16px;} }
+  .modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+  .modal-head h2{font-size:1.05rem; margin:0;}
+  .modal-close{background:var(--accent-soft); color:var(--accent); border:none; border-radius:8px; padding:6px 12px; font-weight:600;}
+  details.glossary-item{border-bottom:1px solid var(--border); padding:8px 0;}
+  details.glossary-item:last-child{border-bottom:none;}
+  details.glossary-item summary{font-weight:600; cursor:pointer;}
+  details.glossary-item p{margin:6px 0 0; font-size:0.88rem; color:var(--text-muted); line-height:1.4;}
+  table.glossary-table{width:100%; table-layout:fixed; border-collapse:collapse; margin-top:8px; font-size:0.78rem;}
+  table.glossary-table th, table.glossary-table td{padding:4px 6px; text-align:left; border-bottom:1px solid var(--border); white-space:normal; word-break:break-word;}
+  table.glossary-table th:first-child, table.glossary-table td:first-child{width:78%;}
+  table.glossary-table th:last-child, table.glossary-table td:last-child{width:22%; text-align:center;}
+  table.glossary-table th{background:var(--accent-soft); color:var(--accent);}
+  .status-dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;}
+  .status-dot.ok{background:#4caf7d;}
+  .status-dot.bad{background:var(--danger);}
+</style>
+</head>
+<body>
+<header>
+  <h1>⛳ Golf Score Tracker</h1>
+  <p class="sub">Compare scores hole by hole across rounds</p>
+</header>
+<main>
+
+  <div class="card" id="setupCard" style="display:none;">
+    <div id="urlFieldWrap">
+      <label for="apiUrlInput">Server URL (your Google Apps Script web app link)</label>
+      <input type="text" id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+      <p class="legend">Paste the "/exec" URL from your Apps Script deployment.</p>
+    </div>
+    <div style="margin-top:10px;">
+      <label for="passcodeInput">Passcode</label>
+      <input type="text" id="passcodeInput" placeholder="The passcode set in the script">
+    </div>
+    <p class="legend">Both are saved on this device only — enter the same URL and passcode on every device you want synced.</p>
+    <button id="saveApiUrlBtn" style="margin-top:10px;">Save &amp; connect</button>
+  </div>
+
+  <div class="card" id="mainCard" style="display:none;">
+    <div class="row" style="margin-bottom:10px;">
+      <span class="legend"><span class="status-dot" id="statusDot"></span><span id="statusText">Connecting…</span></span>
+      <button class="secondary" id="changeServerBtn" type="button" style="margin-left:auto; padding:4px 10px; font-size:0.75rem;">Change server</button>
+    </div>
+    <div class="row">
+      <div style="flex:1;min-width:120px;">
+        <label for="roundDate">Date</label>
+        <input type="date" id="roundDate">
+      </div>
+      <div style="flex:1;min-width:100px;">
+        <label for="roundTime">Start time</label>
+        <input type="time" id="roundTime">
+      </div>
+      <div style="flex:1;min-width:120px;">
+        <label for="holeCount"># Holes</label>
+        <select id="holeCount">
+          <option value="9">9</option>
+          <option value="18">18</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <div style="flex:1;min-width:140px;">
+        <label for="courseName">Course</label>
+        <input type="text" id="courseName" placeholder="e.g. Oosterhoutse Academy">
+      </div>
+      <div style="flex:1;min-width:140px;">
+        <div class="label-row">
+          <label for="gameplay" style="margin-bottom:0;">Gameplay</label>
+          <button type="button" class="info-btn" id="glossaryBtn" aria-label="What do these formats mean?">i</button>
+        </div>
+        <select id="gameplay">
+          <option value="Stroke play">Stroke play</option>
+          <option value="Stableford">Stableford</option>
+          <option value="Match play">Match play</option>
+          <option value="Scramble">Scramble</option>
+          <option value="Shamble">Shamble</option>
+          <option value="Best ball">Best ball</option>
+          <option value="Alternate shot">Alternate shot</option>
+          <option value="Skins">Skins</option>
+          <option value="Practice">Practice</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <label for="players">Player(s)</label>
+      <input type="text" id="players" placeholder="e.g. Me &amp; Partner, or Team A: Me/Val vs Team B: ...">
+    </div>
+    <div style="margin-top:10px; display:none;" id="h1TeeOffWrap">
+      <label for="h1TeeOff">H1 tee off (who tees off on hole 1)</label>
+      <input type="text" id="h1TeeOff" placeholder="e.g. Partner's name">
+    </div>
+    <div style="margin-top:10px;">
+      <label for="remarks">Remarks</label>
+      <textarea id="remarks" placeholder="Notes about this round..."></textarea>
+    </div>
+    <p class="legend" id="startHint">Tap "Start round" to begin — then tap "+1 stroke" for every shot and "Holed" when the ball's in.</p>
+    <div id="holeCounterSection" style="display:none;">
+      <div class="hole-chips" id="holeChips"></div>
+      <div class="counter-panel">
+        <div class="counter-hole-label" id="counterHoleLabel">Hole 1</div>
+        <div class="counter-display" id="counterDisplay">0</div>
+        <div class="counter-buttons">
+          <button type="button" class="counter-btn minus" id="counterMinus" aria-label="Undo last stroke">−</button>
+          <button type="button" class="counter-btn plus" id="counterPlus">+1 stroke</button>
+        </div>
+        <button type="button" id="holedBtn">Holed ✓ — next hole</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <button id="addRoundBtn">Start round</button>
+      <button class="secondary" id="cancelEditBtn" type="button" style="display:none;">Done</button>
+      <button class="secondary" id="exportBtn" type="button">Download CSV</button>
+    </div>
+    <p class="legend" id="statusMsg"></p>
+  </div>
+
+  <div class="card" id="tableCard" style="display:none;">
+    <div class="row" style="margin-bottom:10px;">
+      <div style="flex:1; min-width:140px;">
+        <label id="filterGameplayLabel">Filter by gameplay</label>
+        <div class="multiselect" id="gameplayMultiselect">
+          <button type="button" class="multiselect-toggle" id="gameplayToggle" aria-haspopup="listbox">
+            <span id="gameplayToggleText">All gameplay</span><span class="chevron">▾</span>
+          </button>
+          <div class="multiselect-panel" id="gameplayPanel" style="display:none;"></div>
+        </div>
+      </div>
+      <div style="flex:1; min-width:140px;">
+        <label id="filterPlayersLabel">Filter by player(s)</label>
+        <div class="multiselect" id="playersMultiselect">
+          <button type="button" class="multiselect-toggle" id="playersToggle" aria-haspopup="listbox">
+            <span id="playersToggleText">All players</span><span class="chevron">▾</span>
+          </button>
+          <div class="multiselect-panel" id="playersPanel" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="compareTable">
+        <thead><tr><th class="hole-label">Hole</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="emptyState" class="empty">No rounds logged yet — add your first round above.</div>
+  </div>
+
+  <div class="card" id="clearCard" style="display:none;">
+    <button class="secondary" id="clearAllBtn" type="button" style="color:var(--danger);">Clear all data</button>
+    <p class="legend" style="margin-top:10px;">Permanently deletes every round from the shared sheet. There's no undo.</p>
+  </div>
+</main>
+
+<div class="modal-overlay" id="glossaryOverlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>Gameplay formats</h2>
+      <button class="modal-close" id="glossaryCloseBtn" type="button">Close</button>
+    </div>
+    <div id="glossaryList"></div>
+  </div>
+</div>
+
+<script>
+// Fill this in with your deployed Apps Script "/exec" URL before hosting
+// this file. Once set, nobody who opens the app needs to know or enter
+// it — they'll only be asked for the passcode.
+const HARDCODED_API_URL = "https://script.google.com/macros/s/AKfycbyKBIS7FVUADRsz_qOfgzfsaPAPnbfF7XzMq0R9dDXjH2qeXI3aaBgztzkoN-innofi/exec";
+
+const LS_URL_KEY = "golf_tracker_api_url";
+const LS_KEY_KEY = "golf_tracker_passcode";
+let API_URL = HARDCODED_API_URL || localStorage.getItem(LS_URL_KEY) || "";
+let PASSCODE = localStorage.getItem(LS_KEY_KEY) || "";
+let rounds = [];
+let editingId = null;
+let holesEnabled = false;
+let currentScores = [];
+let activeHole = 0;
+let pollTimer = null;
+
+function debounce(fn, ms){
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+function sortKey(r){
+  return (r.date || "") + "T" + (r.time || "00:00");
+}
+
+function setStatus(ok, text){
+  document.getElementById("statusDot").className = "status-dot " + (ok ? "ok" : "bad");
+  document.getElementById("statusText").textContent = text;
+}
+
+async function apiGet(){
+  const url = API_URL + (API_URL.includes("?") ? "&" : "?") + "key=" + encodeURIComponent(PASSCODE);
+  const res = await fetch(url, { method: "GET" });
+  const data = await res.json();
+  if(!data.success) throw new Error(data.error || "unknown_error");
+  return data.rounds;
+}
+
+async function apiPost(payload){
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(Object.assign({ key: PASSCODE }, payload)),
+  });
+  const data = await res.json();
+  if(!data.success) throw new Error(data.error || "unknown_error");
+  return data;
+}
+
+async function refreshRounds(showOkStatus){
+  try{
+    rounds = await apiGet();
+    rounds.sort((a,b) => sortKey(a).localeCompare(sortKey(b)));
+    if(showOkStatus) setStatus(true, "Connected — synced just now");
+    render();
+  }catch(e){
+    if(e.message === "unauthorized"){
+      setStatus(false, "Wrong passcode — tap 'Change server' to re-enter it.");
+    }else{
+      setStatus(false, "Couldn't reach server (" + e.message + ")");
+    }
+  }
+}
+
+function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => refreshRounds(true), 6000);
+}
+
+function showSetup(){
+  document.getElementById("setupCard").style.display = "block";
+  document.getElementById("mainCard").style.display = "none";
+  document.getElementById("tableCard").style.display = "none";
+  document.getElementById("clearCard").style.display = "none";
+  if(HARDCODED_API_URL){
+    document.getElementById("urlFieldWrap").style.display = "none";
+  }else{
+    document.getElementById("apiUrlInput").value = API_URL || "";
+  }
+  document.getElementById("passcodeInput").value = PASSCODE || "";
+}
+
+function showMain(){
+  document.getElementById("setupCard").style.display = "none";
+  document.getElementById("mainCard").style.display = "block";
+  document.getElementById("tableCard").style.display = "block";
+  document.getElementById("clearCard").style.display = "block";
+}
+
+async function connect(){
+  const url = HARDCODED_API_URL || document.getElementById("apiUrlInput").value.trim();
+  const passcode = document.getElementById("passcodeInput").value;
+  if(!url){ return; }
+  API_URL = url;
+  PASSCODE = passcode;
+  localStorage.setItem(LS_URL_KEY, API_URL);
+  localStorage.setItem(LS_KEY_KEY, PASSCODE);
+  showMain();
+  setStatus(true, "Connecting…");
+  await refreshRounds(true);
+  startPolling();
+}
+
+function toggleH1TeeOff(){
+  const isAlt = document.getElementById("gameplay").value === "Alternate shot";
+  document.getElementById("h1TeeOffWrap").style.display = isAlt ? "block" : "none";
+  if(!isAlt) document.getElementById("h1TeeOff").value = "";
+}
+
+function renderHoleCounter(){
+  const section = document.getElementById("holeCounterSection");
+  if(!holesEnabled || currentScores.length === 0){ section.style.display = "none"; return; }
+  section.style.display = "block";
+  document.getElementById("holeChips").innerHTML = currentScores.map((v,i)=>{
+    const cls = "hole-chip" + (i===activeHole ? " active" : "") + (v!=null ? " filled" : "");
+    return `<button type="button" class="${cls}" onclick="selectHole(${i})"><span>H${i+1}</span><small>${v!=null ? v : "–"}</small></button>`;
+  }).join("");
+  document.getElementById("counterHoleLabel").textContent = "Hole " + (activeHole+1) + " of " + currentScores.length;
+  document.getElementById("counterDisplay").textContent = currentScores[activeHole] != null ? currentScores[activeHole] : 0;
+  document.getElementById("counterMinus").disabled = !currentScores[activeHole];
+  document.getElementById("holedBtn").textContent = activeHole === currentScores.length - 1 ? "Holed ✓ — finish" : "Holed ✓ — next hole";
+}
+
+function selectHole(i){ activeHole = i; renderHoleCounter(); }
+
+function currentRoundData(){
+  const gameplay = document.getElementById("gameplay").value;
+  return {
+    date: document.getElementById("roundDate").value || new Date().toISOString().slice(0,10),
+    time: document.getElementById("roundTime").value || new Date().toTimeString().slice(0,5),
+    course: document.getElementById("courseName").value.trim(),
+    gameplay,
+    players: document.getElementById("players").value.trim(),
+    h1TeeOff: gameplay === "Alternate shot" ? document.getElementById("h1TeeOff").value.trim() : "",
+    remarks: document.getElementById("remarks").value.trim(),
+    scores: currentScores,
+  };
+}
+
+async function saveScoresNow(){
+  if(!editingId) return;
+  try{
+    await apiPost({ action: "update", id: editingId, data: currentRoundData() });
+    setStatus(true, "Autosaved");
+    refreshRounds(false);
+  }catch(e){
+    setStatus(false, "Couldn't autosave (" + e.message + ")");
+  }
+}
+const debouncedSaveScores = debounce(saveScoresNow, 400);
+
+function incrementStroke(){
+  if(currentScores[activeHole] == null) currentScores[activeHole] = 0;
+  currentScores[activeHole]++;
+  renderHoleCounter();
+  debouncedSaveScores();
+}
+function decrementStroke(){
+  if(currentScores[activeHole] == null) currentScores[activeHole] = 0;
+  if(currentScores[activeHole] > 0) currentScores[activeHole]--;
+  renderHoleCounter();
+  debouncedSaveScores();
+}
+function holedNext(){
+  saveScoresNow();
+  if(activeHole < currentScores.length - 1) activeHole++;
+  renderHoleCounter();
+}
+
+const debouncedSaveMeta = debounce(async () => {
+  if(!editingId) return;
+  try{
+    await apiPost({ action: "update", id: editingId, data: currentRoundData() });
+    setStatus(true, "Autosaved");
+    refreshRounds(false);
+  }catch(e){
+    setStatus(false, "Couldn't autosave (" + e.message + ")");
+  }
+}, 500);
+
+function setActiveUi(active){
+  document.getElementById("addRoundBtn").style.display = active ? "none" : "inline-block";
+  document.getElementById("cancelEditBtn").style.display = active ? "inline-block" : "none";
+  document.getElementById("holeCount").disabled = active;
+  document.getElementById("startHint").style.display = active ? "none" : "block";
+  holesEnabled = active;
+}
+
+function resetForm(){
+  editingId = null;
+  currentScores = [];
+  activeHole = 0;
+  document.getElementById("roundDate").valueAsDate = new Date();
+  document.getElementById("roundTime").value = new Date().toTimeString().slice(0,5);
+  document.getElementById("courseName").value = "";
+  document.getElementById("gameplay").value = "Stroke play";
+  document.getElementById("players").value = "";
+  document.getElementById("remarks").value = "";
+  document.getElementById("holeCount").value = "9";
+  toggleH1TeeOff();
+  setActiveUi(false);
+  renderHoleCounter();
+}
+
+function finishRound(){
+  document.getElementById("statusMsg").textContent = "Round saved.";
+  resetForm();
+}
+
+function loadRoundIntoForm(id){
+  const r = rounds.find(x => x.id === id);
+  if(!r) return;
+  editingId = id;
+  document.getElementById("roundDate").value = r.date;
+  document.getElementById("roundTime").value = r.time || "";
+  document.getElementById("courseName").value = r.course || "";
+  document.getElementById("gameplay").value = r.gameplay || "Stroke play";
+  document.getElementById("players").value = r.players || "";
+  document.getElementById("remarks").value = r.remarks || "";
+  document.getElementById("holeCount").value = r.scores.length > 9 ? "18" : "9";
+  toggleH1TeeOff();
+  document.getElementById("h1TeeOff").value = r.h1TeeOff || "";
+  currentScores = r.scores.slice();
+  const firstOpen = currentScores.findIndex(v => v == null);
+  activeHole = firstOpen === -1 ? currentScores.length - 1 : firstOpen;
+  setActiveUi(true);
+  renderHoleCounter();
+  document.getElementById("statusMsg").textContent = "Editing round from " + formatDate(r.date) + " — tap a hole chip to jump to it.";
+  document.getElementById("mainCard").scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+async function startRound(){
+  const holeCount = parseInt(document.getElementById("holeCount").value, 10);
+  const scores = new Array(holeCount).fill(null);
+  const btn = document.getElementById("addRoundBtn");
+  btn.disabled = true;
+  try{
+    const data = currentRoundData();
+    data.scores = scores;
+    const res = await apiPost({ action: "add", data });
+    editingId = res.id;
+    currentScores = scores.slice();
+    activeHole = 0;
+    setActiveUi(true);
+    renderHoleCounter();
+    document.getElementById("statusMsg").textContent = "Round started — tap '+1 stroke' for each hit, then 'Holed' to move on.";
+    refreshRounds(false);
+  }catch(e){
+    document.getElementById("statusMsg").textContent = "Couldn't start round (" + e.message + ")";
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+const pendingDeleteTimers = {};
+
+function confirmDeleteRound(btnEl, id){
+  if(btnEl.dataset.armed === "1"){
+    clearTimeout(pendingDeleteTimers[id]);
+    delete pendingDeleteTimers[id];
+    deleteRound(id);
+    return;
+  }
+  btnEl.dataset.armed = "1";
+  const original = btnEl.textContent;
+  btnEl.textContent = "Tap to confirm";
+  pendingDeleteTimers[id] = setTimeout(() => {
+    btnEl.dataset.armed = "0";
+    btnEl.textContent = original;
+  }, 4000);
+}
+
+async function deleteRound(id){
+  try{
+    await apiPost({ action: "delete", id });
+    refreshRounds(true);
+  }catch(e){
+    document.getElementById("statusMsg").textContent = "Couldn't delete (" + e.message + ")";
+  }
+}
+
+let clearArmed = false;
+let clearArmedTimeout = null;
+async function clearAll(){
+  const btn = document.getElementById("clearAllBtn");
+  if(!clearArmed){
+    clearArmed = true;
+    btn.textContent = "Tap again to confirm";
+    document.getElementById("statusMsg").textContent = "This deletes all rounds for everyone using this sheet — tap again within 5s to confirm.";
+    clearArmedTimeout = setTimeout(() => { clearArmed = false; btn.textContent = "Clear all data"; }, 5000);
+    return;
+  }
+  clearArmed = false;
+  clearTimeout(clearArmedTimeout);
+  btn.textContent = "Clear all data";
+  btn.disabled = true;
+  try{
+    await apiPost({ action: "clear" });
+    document.getElementById("statusMsg").textContent = "All rounds cleared.";
+    refreshRounds(true);
+  }catch(e){
+    document.getElementById("statusMsg").textContent = "Couldn't clear all (" + e.message + ")";
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function csvEscape(val){
+  const s = (val === null || val === undefined) ? "" : String(val);
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+
+function exportCsv(){
+  if(rounds.length === 0){
+    document.getElementById("statusMsg").textContent = "No rounds to export yet.";
+    return;
+  }
+  const maxHoles = Math.max(...rounds.map(r=>r.scores.length));
+  const headerCols = ["Date","Time","Course","Gameplay","Players","H1 Tee Off","Remarks"];
+  for(let h=1;h<=maxHoles;h++) headerCols.push("Hole "+h);
+  headerCols.push("Total");
+  const lines = [headerCols.map(csvEscape).join(",")];
+  rounds.forEach(r=>{
+    const total = r.scores.filter(Boolean).reduce((a,b)=>a+b,0);
+    const row = [r.date, r.time||"", r.course||"", r.gameplay||"", r.players||"", r.h1TeeOff||"", r.remarks||""];
+    for(let h=0;h<maxHoles;h++) row.push(r.scores[h] ?? "");
+    row.push(total || "");
+    lines.push(row.map(csvEscape).join(","));
+  });
+  const csv = lines.join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "golf_score_tracker.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  document.getElementById("statusMsg").textContent = "CSV downloaded.";
+}
+
+let selectedPlayers = new Set();
+let selectedGameplays = new Set();
+
+function updateMultiselectPanel(opts){
+  const distinct = [...new Set(rounds.map(r => r[opts.field]).filter(Boolean))].sort();
+  const stillValid = new Set([...opts.selectedSet].filter(v => distinct.includes(v)));
+  opts.selectedSet.clear();
+  stillValid.forEach(v => opts.selectedSet.add(v));
+
+  const panel = document.getElementById(opts.panelId);
+  if(distinct.length === 0){
+    panel.innerHTML = `<div class="multiselect-empty">${opts.emptyLabel}</div>`;
+  }else{
+    panel.innerHTML = distinct.map(v => {
+      const checked = opts.selectedSet.has(v) ? "checked" : "";
+      const id = opts.panelId + "-opt-" + btoa(unescape(encodeURIComponent(v))).replace(/[^a-zA-Z0-9]/g, "");
+      return `<label class="multiselect-option" for="${id}">
+        <input type="checkbox" id="${id}" value="${v.replace(/"/g,'&quot;')}" ${checked}>
+        <span>${v}</span>
+      </label>`;
+    }).join("");
+  }
+
+  const toggleText = document.getElementById(opts.toggleTextId);
+  if(opts.selectedSet.size === 0) toggleText.textContent = opts.pluralLabel;
+  else if(opts.selectedSet.size === 1) toggleText.textContent = [...opts.selectedSet][0];
+  else toggleText.textContent = opts.selectedSet.size + " " + opts.singularLabel + "s selected";
+
+  panel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener("change", () => {
+      if(cb.checked) opts.selectedSet.add(cb.value);
+      else opts.selectedSet.delete(cb.value);
+      render();
+    });
+  });
+}
+
+function toggleMultiselectPanel(panelId){
+  const panel = document.getElementById(panelId);
+  panel.style.display = panel.style.display === "block" ? "none" : "block";
+}
+
+document.addEventListener("click", (e) => {
+  [["playersMultiselect","playersPanel"], ["gameplayMultiselect","gameplayPanel"]].forEach(([containerId, panelId]) => {
+    const container = document.getElementById(containerId);
+    if(container && !container.contains(e.target)){
+      document.getElementById(panelId).style.display = "none";
+    }
+  });
+});
+
+function render(){
+  const table = document.getElementById("compareTable");
+  const thead = table.querySelector("thead tr");
+  const tbody = table.querySelector("tbody");
+  const emptyState = document.getElementById("emptyState");
+
+  updateMultiselectPanel({ field:"gameplay", selectedSet:selectedGameplays, panelId:"gameplayPanel", toggleTextId:"gameplayToggleText", singularLabel:"gameplay", pluralLabel:"All gameplay", emptyLabel:"No gameplay logged yet." });
+  updateMultiselectPanel({ field:"players", selectedSet:selectedPlayers, panelId:"playersPanel", toggleTextId:"playersToggleText", singularLabel:"player", pluralLabel:"All players", emptyLabel:"No players logged yet." });
+
+  const visibleRounds = rounds.filter(r =>
+    (selectedGameplays.size === 0 || selectedGameplays.has(r.gameplay)) &&
+    (selectedPlayers.size === 0 || selectedPlayers.has(r.players))
+  );
+
+  thead.innerHTML = '<th class="hole-label">Hole</th>';
+  tbody.innerHTML = "";
+
+  if(rounds.length === 0){
+    table.style.display = "none";
+    emptyState.style.display = "block";
+    emptyState.textContent = "No rounds logged yet — add your first round above.";
+    return;
+  }
+  if(visibleRounds.length === 0){
+    table.style.display = "none";
+    emptyState.style.display = "block";
+    emptyState.textContent = "No rounds match this filter.";
+    return;
+  }
+  table.style.display = "table";
+  emptyState.style.display = "none";
+
+  const rounds_ = visibleRounds;
+  const maxHoles = Math.max(...rounds_.map(r=>r.scores.length));
+
+  rounds_.forEach((r)=>{
+    const th = document.createElement("th");
+    th.textContent = formatDate(r.date);
+    thead.appendChild(th);
+  });
+
+  const infoRows = [
+    { label: "Course", get: r => r.course || "–" },
+    { label: "Gameplay", get: r => r.gameplay || "–" },
+    { label: "Player(s)", get: r => r.players || "–", cellClass: "wrap-cell" },
+    { label: "H1 tee off", get: r => r.h1TeeOff || "–" },
+    { label: "Remarks", get: r => r.remarks || "–", cellClass: "remarks-cell" },
+  ];
+  infoRows.forEach(info => {
+    const tr = document.createElement("tr");
+    tr.className = "info-row";
+    const tdLabel = document.createElement("td");
+    tdLabel.className = "hole-label";
+    tdLabel.textContent = info.label;
+    tr.appendChild(tdLabel);
+    rounds_.forEach(r => {
+      const td = document.createElement("td");
+      if(info.cellClass) td.className = info.cellClass;
+      td.textContent = info.get(r);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  for(let h=0; h<maxHoles; h++){
+    const tr = document.createElement("tr");
+    const tdLabel = document.createElement("td");
+    tdLabel.className = "hole-label";
+    tdLabel.textContent = "Hole " + (h+1);
+    tr.appendChild(tdLabel);
+    rounds_.forEach(r=>{
+      const td = document.createElement("td");
+      const val = r.scores[h];
+      td.textContent = val ? val : "–";
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+
+  const totalTr = document.createElement("tr");
+  totalTr.className = "total-row";
+  const totalLabel = document.createElement("td");
+  totalLabel.className = "hole-label";
+  totalLabel.textContent = "Total";
+  totalTr.appendChild(totalLabel);
+  rounds_.forEach(r=>{
+    const td = document.createElement("td");
+    const sum = r.scores.filter(Boolean).reduce((a,b)=>a+b,0);
+    td.textContent = sum || "–";
+    totalTr.appendChild(td);
+  });
+  tbody.appendChild(totalTr);
+
+  const actionsTr = document.createElement("tr");
+  actionsTr.className = "actions-row";
+  const actionsLabel = document.createElement("td");
+  actionsLabel.className = "hole-label";
+  actionsTr.appendChild(actionsLabel);
+  rounds_.forEach(r=>{
+    const td = document.createElement("td");
+    td.className = "actions-cell";
+    td.innerHTML = `<button class="round-head-btn" style="color:var(--accent);" onclick="loadRoundIntoForm('${r.id}')">edit</button><button class="round-head-btn" onclick="confirmDeleteRound(this, '${r.id}')">remove</button>`;
+    actionsTr.appendChild(td);
+  });
+  tbody.appendChild(actionsTr);
+}
+
+const GAMEPLAY_DEFS = [
+  { name: "Stroke play", def: "Count every stroke across the round. Lowest total wins — the standard, default format." },
+  { name: "Stableford", def: "Points per hole based on your net score vs par. Higher total wins; a disaster hole just scores 0 instead of wrecking your card.",
+    table: [
+      ["3+ over par", "0"], ["2 over par (net double bogey)", "1"], ["1 over par (net bogey)", "2"],
+      ["Net par", "3"], ["1 under par (net birdie)", "4"], ["2 under par (net eagle)", "5"], ["3 under par (net albatross)", "6"],
+    ]
+  },
+  { name: "Match play", def: "Hole-by-hole contest between two players or teams. Whoever takes fewer strokes wins that hole; most holes won wins the match." },
+  { name: "Scramble", def: "Everyone tees off, the group picks the best shot, then everyone plays their next shot from that spot — repeating until holed. One shared team ball the whole hole." },
+  { name: "Shamble", def: "Everyone tees off and the best tee shot is picked, then each player plays their own ball individually for the rest of the hole. Best individual score counts for the team." },
+  { name: "Best ball", def: "Each player plays their own ball the entire hole; only the single best score among the group counts as the team's score for that hole." },
+  { name: "Alternate shot", def: "Two-person teams share one ball, taking turns hitting every shot. One partner tees off on odd holes, the other on even holes." },
+  { name: "Skins", def: "Each hole is its own prize (a 'skin'). Lowest score on a hole wins it outright. A tie means no winner — the skin carries over, making the next hole worth more." },
+  { name: "Practice", def: "A casual, non-qualifying round — not tied to a specific format. Play however you like; great for working on specific parts of your game." },
+];
+
+function buildGlossaryTable(rows){
+  const body = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("");
+  return `<table class="glossary-table"><thead><tr><th>Net score vs par</th><th>Points</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function openGlossary(){
+  document.getElementById("glossaryList").innerHTML = GAMEPLAY_DEFS.map(g =>
+    `<details class="glossary-item"><summary>${g.name}</summary><p>${g.def}</p>${g.table ? buildGlossaryTable(g.table) : ""}</details>`
+  ).join("");
+  document.getElementById("glossaryOverlay").classList.add("open");
+}
+function closeGlossary(){ document.getElementById("glossaryOverlay").classList.remove("open"); }
+
+function formatDate(iso){
+  const d = new Date(iso + "T00:00:00");
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
+}
+
+document.getElementById("saveApiUrlBtn").addEventListener("click", connect);
+document.getElementById("changeServerBtn").addEventListener("click", () => {
+  if(pollTimer) clearInterval(pollTimer);
+  showSetup();
+});
+document.getElementById("gameplay").addEventListener("change", () => { toggleH1TeeOff(); debouncedSaveMeta(); });
+document.getElementById("counterPlus").addEventListener("click", incrementStroke);
+document.getElementById("counterMinus").addEventListener("click", decrementStroke);
+document.getElementById("holedBtn").addEventListener("click", holedNext);
+document.getElementById("roundDate").addEventListener("change", debouncedSaveMeta);
+document.getElementById("roundTime").addEventListener("change", debouncedSaveMeta);
+document.getElementById("courseName").addEventListener("input", debouncedSaveMeta);
+document.getElementById("players").addEventListener("input", debouncedSaveMeta);
+document.getElementById("remarks").addEventListener("input", debouncedSaveMeta);
+document.getElementById("h1TeeOff").addEventListener("input", debouncedSaveMeta);
+document.getElementById("addRoundBtn").addEventListener("click", startRound);
+document.getElementById("cancelEditBtn").addEventListener("click", finishRound);
+document.getElementById("clearAllBtn").addEventListener("click", clearAll);
+document.getElementById("exportBtn").addEventListener("click", exportCsv);
+document.getElementById("glossaryBtn").addEventListener("click", openGlossary);
+document.getElementById("glossaryCloseBtn").addEventListener("click", closeGlossary);
+document.getElementById("glossaryOverlay").addEventListener("click", (e)=>{ if(e.target.id === "glossaryOverlay") closeGlossary(); });
+document.getElementById("playersToggle").addEventListener("click", (e) => { e.stopPropagation(); toggleMultiselectPanel("playersPanel"); });
+document.getElementById("gameplayToggle").addEventListener("click", (e) => { e.stopPropagation(); toggleMultiselectPanel("gameplayPanel"); });
+window.selectHole = selectHole;
+window.loadRoundIntoForm = loadRoundIntoForm;
+window.deleteRound = deleteRound;
+window.confirmDeleteRound = confirmDeleteRound;
+
+document.getElementById("roundDate").valueAsDate = new Date();
+document.getElementById("roundTime").value = new Date().toTimeString().slice(0,5);
+resetForm();
+
+if(API_URL){
+  showMain();
+  setStatus(true, "Connecting…");
+  refreshRounds(true).then(startPolling);
+}else{
+  showSetup();
+}
+</script>
+</body>
+</html>
