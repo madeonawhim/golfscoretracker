@@ -216,7 +216,7 @@
     </div>
     <div class="table-wrap">
       <table id="compareTable">
-        <thead><tr><th class="date-label">Date</th></tr></thead>
+        <thead><tr><th class="hole-label">Date</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -654,7 +654,7 @@ function render(){
     (selectedPlayers.size === 0 || selectedPlayers.has(r.players))
   );
 
-  thead.innerHTML = '<th class="date-label">Date</th>';
+  thead.innerHTML = '<th class="hole-label">Date</th>';
   tbody.innerHTML = "";
 
   if(rounds.length === 0){
