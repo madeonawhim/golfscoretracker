@@ -260,7 +260,13 @@ function debounce(fn, ms){
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
-
+function todayLocalDateStr(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return yyyy + "-" + mm + "-" + dd;
+}
 function sortKey(r){
   return (r.date || "") + "T" + (r.time || "00:00");
 }
@@ -368,7 +374,7 @@ function selectHole(i){ activeHole = i; renderHoleCounter(); }
 function currentRoundData(){
   const gameplay = document.getElementById("gameplay").value;
   return {
-    date: document.getElementById("roundDate").value || new Date().toISOString().slice(0,10),
+    date: document.getElementById("roundDate").value || todayLocalDateStr(),
     time: document.getElementById("roundTime").value || new Date().toTimeString().slice(0,5),
     course: document.getElementById("courseName").value.trim(),
     gameplay,
@@ -432,7 +438,7 @@ function resetForm(){
   editingId = null;
   currentScores = [];
   activeHole = 0;
-  document.getElementById("roundDate").valueAsDate = new Date();
+  document.getElementById("roundDate")..value = todayLocalDateStr();
   document.getElementById("roundTime").value = new Date().toTimeString().slice(0,5);
   document.getElementById("courseName").value = "";
   document.getElementById("gameplay").value = "Stroke play";
@@ -805,7 +811,7 @@ window.loadRoundIntoForm = loadRoundIntoForm;
 window.deleteRound = deleteRound;
 window.confirmDeleteRound = confirmDeleteRound;
 
-document.getElementById("roundDate").valueAsDate = new Date();
+document.getElementById("roundDate").value = todayLocalDateStr();
 document.getElementById("roundTime").value = new Date().toTimeString().slice(0,5);
 resetForm();
 
