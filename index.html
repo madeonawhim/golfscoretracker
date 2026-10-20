@@ -810,7 +810,7 @@ document.getElementById("roundDate").valueAsDate = new Date();
 document.getElementById("roundTime").value = new Date().toTimeString().slice(0,5);
 resetForm();
 
-if(API_URL){
+if(API_URL && PASSCODE){
   showMain();
   setStatus(true, "Connecting…");
   refreshRounds(true).then(startPolling);
