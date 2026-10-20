@@ -110,16 +110,15 @@
     </div>
     <div style="margin-top:10px;">
       <label for="passcodeInput">Passcode</label>
-      <input type="text" id="passcodeInput" placeholder="The passcode set in the script">
+      <input type="text" id="passcodeInput" placeholder="Enter passcode">
     </div>
-    <p class="legend">Both are saved on this device only — enter the same URL and passcode on every device you want synced.</p>
-    <button id="saveApiUrlBtn" style="margin-top:10px;">Save &amp; connect</button>
+    <button id="saveApiUrlBtn" style="margin-top:10px;">Connect</button>
   </div>
 
   <div class="card" id="mainCard" style="display:none;">
     <div class="row" style="margin-bottom:10px;">
       <span class="legend"><span class="status-dot" id="statusDot"></span><span id="statusText">Connecting…</span></span>
-      <button class="secondary" id="changeServerBtn" type="button" style="margin-left:auto; padding:4px 10px; font-size:0.75rem;">Change server</button>
+      <button class="secondary" id="changeServerBtn" type="button" style="margin-left:auto; padding:4px 10px; font-size:0.75rem;">Re-enter passcode</button>
     </div>
     <div class="row">
       <div style="flex:1;min-width:120px;">
@@ -298,7 +297,7 @@ async function refreshRounds(showOkStatus){
     render();
   }catch(e){
     if(e.message === "unauthorized"){
-      setStatus(false, "Wrong passcode — tap 'Change server' to re-enter it.");
+      setStatus(false, "Wrong passcode — tap 'Re-enter passcode' to try again.");
     }else{
       setStatus(false, "Couldn't reach server (" + e.message + ")");
     }
