@@ -225,6 +225,14 @@
 
   <div class="card" id="clearCard" style="display:none;">
     <button class="secondary" id="clearAllBtn" type="button" style="color:var(--danger);">Clear all data</button>
+    <div id="clearConfirmWrap" style="display:none; margin-top:10px;">
+      <label for="clearPasscodeInput">Enter the delete passcode to confirm</label>
+      <input type="text" id="clearPasscodeInput" placeholder="Delete passcode">
+      <div class="row" style="margin-top:8px;">
+        <button type="button" id="clearConfirmBtn" style="background:var(--danger);">Confirm delete</button>
+        <button type="button" class="secondary" id="clearCancelBtn">Cancel</button>
+      </div>
+    </div>
     <p class="legend" style="margin-top:10px;">Permanently deletes every round from the shared sheet. There's no undo.</p>
   </div>
 </main>
@@ -260,6 +268,7 @@ function debounce(fn, ms){
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
+
 function todayLocalDateStr(){
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -267,6 +276,7 @@ function todayLocalDateStr(){
   const dd = String(d.getDate()).padStart(2,"0");
   return yyyy + "-" + mm + "-" + dd;
 }
+
 function sortKey(r){
   return (r.date || "") + "T" + (r.time || "00:00");
 }
@@ -527,27 +537,33 @@ async function deleteRound(id){
   }
 }
 
-let clearArmed = false;
-let clearArmedTimeout = null;
-async function clearAll(){
-  const btn = document.getElementById("clearAllBtn");
-  if(!clearArmed){
-    clearArmed = true;
-    btn.textContent = "Tap again to confirm";
-    document.getElementById("statusMsg").textContent = "This deletes all rounds for everyone using this sheet — tap again within 5s to confirm.";
-    clearArmedTimeout = setTimeout(() => { clearArmed = false; btn.textContent = "Clear all data"; }, 5000);
-    return;
-  }
-  clearArmed = false;
-  clearTimeout(clearArmedTimeout);
-  btn.textContent = "Clear all data";
+function showClearPrompt(){
+  document.getElementById("clearAllBtn").style.display = "none";
+  document.getElementById("clearConfirmWrap").style.display = "block";
+  document.getElementById("clearPasscodeInput").value = "";
+  document.getElementById("clearPasscodeInput").focus();
+}
+
+function hideClearPrompt(){
+  document.getElementById("clearAllBtn").style.display = "inline-block";
+  document.getElementById("clearConfirmWrap").style.display = "none";
+}
+
+async function clearAllConfirmed(){
+  const entered = document.getElementById("clearPasscodeInput").value;
+  const btn = document.getElementById("clearConfirmBtn");
   btn.disabled = true;
   try{
-    await apiPost({ action: "clear" });
+    await apiPost({ action: "clear", clearKey: entered });
     document.getElementById("statusMsg").textContent = "All rounds cleared.";
+    hideClearPrompt();
     refreshRounds(true);
   }catch(e){
-    document.getElementById("statusMsg").textContent = "Couldn't clear all (" + e.message + ")";
+    if(e.message === "wrong_clear_passcode"){
+      document.getElementById("statusMsg").textContent = "Wrong passcode — nothing was deleted.";
+    }else{
+      document.getElementById("statusMsg").textContent = "Couldn't clear all (" + e.message + ")";
+    }
   }finally{
     btn.disabled = false;
   }
@@ -799,7 +815,9 @@ document.getElementById("remarks").addEventListener("input", debouncedSaveMeta);
 document.getElementById("h1TeeOff").addEventListener("input", debouncedSaveMeta);
 document.getElementById("addRoundBtn").addEventListener("click", startRound);
 document.getElementById("cancelEditBtn").addEventListener("click", finishRound);
-document.getElementById("clearAllBtn").addEventListener("click", clearAll);
+document.getElementById("clearAllBtn").addEventListener("click", showClearPrompt);
+document.getElementById("clearConfirmBtn").addEventListener("click", clearAllConfirmed);
+document.getElementById("clearCancelBtn").addEventListener("click", hideClearPrompt);
 document.getElementById("exportBtn").addEventListener("click", exportCsv);
 document.getElementById("glossaryBtn").addEventListener("click", openGlossary);
 document.getElementById("glossaryCloseBtn").addEventListener("click", closeGlossary);
